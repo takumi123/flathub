@@ -40,7 +40,10 @@ modules:
       # Flathub のビルドは秘密値も環境変数も無いので Sentry DSN は渡さない（DSN は秘密ではないが、渡すならこのマニフェストに直書き）
       - |
         case "$FLATPAK_ARCH" in x86_64) RID=linux-x64;; aarch64) RID=linux-arm64;; *) echo "unsupported $FLATPAK_ARCH"; exit 1;; esac
-        dotnet publish src/ReplyFive.Desktop -c Release -f net10.0 -r "$RID" --self-contained -p:RuntimeFrameworkVersion=10.0.8 --source ./nuget-sources -o /app/lib/replyfive   # 10.0.8 = Flathub の dotnet10 拡張（SDK 10.0.300）のランタイム。nuget-sources.json と揃える
+        # ネットワークの無い Flathub のビルドを通すための 2 つの上書き（tests/flatpak-build で確認）：
+        #   TargetFrameworks=net10.0   … 無いと restore が net10.0-windows も評価し FlaUI.UIA3 等で NU1101
+        #   EnableWindowsTargeting=false … 無いと Windows のターゲティングパック（Microsoft.WindowsDesktop.App.Ref）を要求して NU1102
+        dotnet publish src/ReplyFive.Desktop -c Release -f net10.0 -r "$RID" --self-contained -p:RuntimeFrameworkVersion=10.0.8 -p:TargetFrameworks=net10.0 -p:EnableWindowsTargeting=false --source ./nuget-sources -o /app/lib/replyfive   # 10.0.8 = Flathub の dotnet10 拡張（SDK 10.0.300）のランタイム。nuget-sources.json と揃える
       - |
         mkdir -p /app/bin
         printf '#!/bin/sh\nexec /app/lib/replyfive/ReplyFive "$@"\n' > /app/bin/ReplyFive
